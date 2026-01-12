@@ -1,0 +1,20 @@
+{
+  "name": "backend",
+  "type": "module",
+  "dependencies": {
+    "amqplib": "^0.10.3",
+    "express": "^4.19.2",
+    "mongoose": "^8.0.0",
+    "redis": "^4.6.13",
+    "ws": "^8.19.0"
+  },
+  "scripts": {
+    "dev": "nodemon index.js & nodemon worker.js",
+    "dev-debug": "cross-env NODE_ENV=development nodemon --inspect index.js",
+    "dev-queue": "cross-env NODE_ENV=development nodemon worker.js"
+  },
+  "devDependencies": {
+    "cross-env": "^10.1.0",
+    "nodemon": "^3.1.11"
+  }
+}
