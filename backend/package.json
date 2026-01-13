@@ -11,11 +11,18 @@
   "scripts": {
     "dev": "nodemon index.js & nodemon worker.js",
     "dev-debug": "cross-env NODE_ENV=development nodemon --inspect --exec tsx src/index.ts",
-    "dev-queue": "cross-env NODE_ENV=development nodemon --exec tsx src/worker.ts"
+    "dev-queue": "cross-env NODE_ENV=development nodemon --exec tsx src/worker.ts",
+    "test": "cross-env NODE_ENV=test mocha -r ts-node/register 'test/**/*.test.ts'"
   },
   "devDependencies": {
+    "@types/chai": "^5.2.3",
+    "@types/mocha": "^10.0.10",
+    "chai": "^6.2.2",
     "cross-env": "^10.1.0",
+    "mocha": "^11.7.5",
     "nodemon": "^3.1.11",
+    "supertest": "^7.2.2",
+    "ts-node": "^10.9.2",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"
   }
