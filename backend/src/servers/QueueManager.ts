@@ -1,13 +1,14 @@
-import amqp, { Channel, Connection, ConsumeMessage } from "amqplib";
-import { env } from "../config/env.js";
+import { Channel, Connection, ConsumeMessage } from "amqplib";
+import { RabbitMQ } from "./Rabbitmq.js";
 
 export class QueueManager {
   private conn!: Connection;
   private channel!: Channel;
 
   async connect() {
-    this.conn = await amqp.connect(env.RABBIT_URL);
-    this.channel = await this.conn.createChannel();
+    const { conn, channel } = await RabbitMQ.connect();
+    this.conn = conn;
+    this.channel = channel;
     return this.channel;
   }
 

@@ -10,7 +10,6 @@ export class RabbitMQ {
         console.log(`Connecting to RabbitMQ (attempt ${i})`);
         const conn = await amqp.connect(env.RABBIT_URL);
         const channel = await conn.createChannel();
-
         console.log("RabbitMQ connected");
         return { conn, channel };
       } catch (err) {

@@ -1,12 +1,12 @@
-import amqp, { Channel } from "amqplib";
-import { env } from "../config/env.js";
+import { Channel } from "amqplib";
+import { RabbitMQ } from "./Rabbitmq.js";
 
 export class QueuePublisher {
   private channel!: Channel;
 
   async connect() {
-    const conn = await amqp.connect(env.RABBIT_URL);
-    this.channel = await conn.createChannel();
+    const { conn, channel } = await RabbitMQ.connect();
+    this.channel = channel;
   }
 
   publishMessage(id: string, retries = 0) {
