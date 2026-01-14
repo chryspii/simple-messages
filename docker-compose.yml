@@ -1,13 +1,45 @@
 version: "3.9"
 
 services:
-  mongodb:
-    image: mongo
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+
+  backend:
+    build: ./backend
+    command: node dist/index.js
+    ports:
+      - "3001:3001"
+      - "8080:8080"
+    env_file:
+      - .env
+    depends_on:
+      - mongo
+      - redis
+      - rabbitmq
+  
+  worker:
+    build: ./backend
+    command: node dist/worker.js
+    env_file:
+      - .env
+    depends_on:
+      - mongo
+      - redis
+      - rabbitmq
+
+  mongo:
+    image: mongo:7
+    volumes:
+      - mongo_data:/data/db
     ports:
       - "27017:27017"
 
   redis:
-    image: redis
+    image: redis:7
     ports:
       - "6379:6379"
 
@@ -16,3 +48,6 @@ services:
     ports:
       - "5672:5672"
       - "15672:15672"
+
+volumes:
+  mongo_data:

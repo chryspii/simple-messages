@@ -1,10 +1,11 @@
 import amqp, { Channel } from "amqplib";
+import { env } from "../config/env.js";
 
 export class QueuePublisher {
   private channel!: Channel;
 
   async connect() {
-    const conn = await amqp.connect("amqp://localhost");
+    const conn = await amqp.connect(env.RABBIT_URL);
     this.channel = await conn.createChannel();
   }
 

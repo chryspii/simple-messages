@@ -1,8 +1,9 @@
 import mongoose from "mongoose";
+import { env } from "../config/env.js";
 
 export class Mongo {
   static async connect() {
-    await mongoose.connect("mongodb://localhost:27017/messages");
+    await mongoose.connect(env.MONGO_URL);
     console.log("MongoDB connected");
   }
 }

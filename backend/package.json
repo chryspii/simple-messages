@@ -12,7 +12,10 @@
     "dev": "nodemon index.js & nodemon worker.js",
     "dev-debug": "cross-env NODE_ENV=development nodemon --inspect --exec tsx src/index.ts",
     "dev-queue": "cross-env NODE_ENV=development nodemon --exec tsx src/worker.ts",
-    "test": "cross-env NODE_ENV=test mocha -r ts-node/register 'test/**/*.test.ts'"
+    "test": "cross-env NODE_ENV=test mocha -r ts-node/register 'test/**/*.test.ts'",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "start-worker": "node dist/worker.js"
   },
   "devDependencies": {
     "@types/chai": "^5.2.3",

@@ -1,11 +1,12 @@
 import amqp, { Channel, Connection, ConsumeMessage } from "amqplib";
+import { env } from "../config/env.js";
 
 export class QueueManager {
   private conn!: Connection;
   private channel!: Channel;
 
   async connect() {
-    this.conn = await amqp.connect("amqp://localhost");
+    this.conn = await amqp.connect(env.RABBIT_URL);
     this.channel = await this.conn.createChannel();
     return this.channel;
   }
