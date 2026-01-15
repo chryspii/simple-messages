@@ -9,8 +9,10 @@ type Message = {
   retries: number;
 };
 
-const API = "http://localhost:3001";
-const WS = "ws://localhost:8080";
+const host = window.location.hostname;
+
+const API = `http://${host}:3001`;
+const WS  = `ws://${host}:8080`;
 
 export default function App() {
   const [messages, setMessages] = useState<Message[]>([]);
