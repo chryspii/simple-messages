@@ -9,11 +9,8 @@ type Message = {
   retries: number;
 };
 
-const host = window.location.hostname;
-const protocol = window.location.protocol.startsWith("https") ? "https" : "http";
-
-const API = `${protocol}://${host}:3001`;
-const WS = `${protocol === "https" ? "wss" : "ws"}://${host}:8080`;
+const API = '/api';
+const WS = location.protocol === "https:" ? `wss://${location.host}/ws` : `ws://${location.host}/ws`;
 
 export default function App() {
   const [messages, setMessages] = useState<Message[]>([]);
