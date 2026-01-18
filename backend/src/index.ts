@@ -11,6 +11,7 @@ import { RealtimeBridge } from "./realtime/RealtimeBridge.js";
 import { QueuePublisher } from "./servers/QueuePublisher.js";
 import { MessageService } from "./services/MessageService.js";
 import { MessageController } from "./controllers/MessageController.js";
+import { HealthController } from "./controllers/HealthController.js";
 
 export async function createApp() {
   const app = express();
@@ -40,6 +41,10 @@ export async function createApp() {
   // services
   const messageService = new MessageService(redis, queue);
   app.use(MessageController(messageService));
+
+  // Health routes
+  app.get("/health", HealthController.basic);
+  app.get("/health/deep", HealthController.deep);
 
   return app;
 }

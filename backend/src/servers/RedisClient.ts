@@ -12,4 +12,8 @@ export class RedisClient {
     }
     return this.client;
   }
+
+  static isHealthy(): boolean {
+    return Boolean(this.client?.isReady);
+  }
 }

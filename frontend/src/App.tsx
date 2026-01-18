@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { HealthTag } from "./components/HealthTag";
 
 type Message = {
   _id: string;
@@ -9,12 +10,19 @@ type Message = {
   retries: number;
 };
 
+type Health = {
+  mongo: boolean;
+  redis: boolean;
+  rabbitmq: boolean;
+};
+
 const API = '/api';
 const WS = location.protocol === "https:" ? `wss://${location.host}/ws` : `ws://${location.host}/ws`;
 
 export default function App() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [dlq, setDlq] = useState<Message[]>([]);
+  const [health, setHealth] = useState<Health | null>(null);
   const [form, setForm] = useState({
     name: "",
     subject: "",
@@ -71,11 +79,29 @@ export default function App() {
     };
   }
 
+  const fetchHealth = async () => {
+    try {
+      const res = await fetch("/health/deep");
+      const data = await res.json();
+      setHealth(data);
+    } catch {
+      setHealth(null);
+    }
+  }
+
   useEffect(() => {
     fetchMessages();
     // fetchDLQ();
+    fetchHealth();
 
     connectWebSocket();
+  }, []);
+
+  useEffect(() => {
+    fetchHealth();
+    const interval = setInterval(fetchHealth, 20000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const submit = async () => {
@@ -118,9 +144,22 @@ export default function App() {
     }
   };
 
+  const allHealthy = health?.mongo && health?.redis && health?.rabbitmq;
+  const toHealthStatus = (value?: boolean): "healthy" | "unhealthy" | "unknown" => {
+    if (value === true) return "healthy";
+    if (value === false) return "unhealthy";
+    return "unknown";
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 p-6 max-w-3xl mx-auto">
       <h1 className="text-2xl font-bold mb-6">Message Queue Demo</h1>
+
+      <div className="flex gap-2 mb-4">
+        <HealthTag label="MongoDB" status={toHealthStatus(health?.mongo)} />
+        <HealthTag label="Redis" status={toHealthStatus(health?.redis)} />
+        <HealthTag label="RabbitMQ" status={toHealthStatus(health?.rabbitmq)} />
+      </div>
 
       <div className="bg-white p-6 rounded shadow mb-8 space-y-4">
         <input className="border p-2 w-full" placeholder="Name"
@@ -129,8 +168,15 @@ export default function App() {
           value={form.subject} onChange={e => setForm({ ...form, subject: e.target.value })} />
         <textarea className="border p-2 w-full" placeholder="Message"
           value={form.message} onChange={e => setForm({ ...form, message: e.target.value })} />
-        <button className="bg-blue-600 text-white px-4 py-2 rounded" onClick={submit}>
-          Send
+
+        <button
+          disabled={!allHealthy}
+          className={`px-4 py-2 rounded ${
+            allHealthy ? "bg-blue-600" : "bg-gray-400 cursor-not-allowed"
+          }`}
+          onClick={submit}
+        >
+          Send Message
         </button>
       </div>
 

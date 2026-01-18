@@ -6,4 +6,8 @@ export class Mongo {
     await mongoose.connect(env.MONGO_URL);
     console.log("MongoDB connected");
   }
+
+  static isHealthy(): boolean {
+    return mongoose.connection.readyState === 1;
+  }
 }

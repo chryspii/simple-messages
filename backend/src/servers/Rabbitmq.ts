@@ -1,7 +1,9 @@
-import amqp from "amqplib";
+import amqp, { Channel } from "amqplib";
 import { env } from "../config/env.js";
 
 export class RabbitMQ {
+  static channel: Channel | null = null;
+
   static async connect(retries = 10, delay = 3000) {
     let lastError: unknown;
 
@@ -10,6 +12,8 @@ export class RabbitMQ {
         console.log(`Connecting to RabbitMQ (attempt ${i})`);
         const conn = await amqp.connect(env.RABBIT_URL);
         const channel = await conn.createChannel();
+        this.channel = channel
+
         console.log("RabbitMQ connected");
         return { conn, channel };
       } catch (err) {
@@ -20,5 +24,9 @@ export class RabbitMQ {
     }
 
     throw lastError;
+  }
+
+  static isHealthy(): boolean {
+    return this.channel !== null;
   }
 }
