@@ -1,5 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { HealthTag } from "./components/HealthTag";
+import AuthService from "./services/AuthService";
+import { LoginModal } from "./components/LoginModal";
+import { RegisterModal } from "./components/RegisterModal";
+import { Navbar } from "./components/Navbar";
+
+const isDev = import.meta.env.DEV;
+const API = isDev ? '' : '/api';
+const WS = location.protocol === "https:" ? `wss://${location.host}/ws` : `ws://${location.host}/ws`;
 
 type Message = {
   _id: string;
@@ -16,20 +24,23 @@ type Health = {
   rabbitmq: boolean;
 };
 
-const isDev = import.meta.env.DEV;
-
-const API = isDev ? '' : '/api';
-const WS = location.protocol === "https:" ? `wss://${location.host}/ws` : `ws://${location.host}/ws`;
-
 export default function App() {
+  const [user, setUser] = useState(AuthService.getUser());
+
+  const [showLogin, setShowLogin] = useState(false);
+  const [showRegister, setShowRegister] = useState(false);
+
   const [messages, setMessages] = useState<Message[]>([]);
+
+  const [subject, setSubject] = useState("");
+  const [message, setMessage] = useState("");
+
+  const isLoggedIn = Boolean(user);
+
   const [dlq, setDlq] = useState<Message[]>([]);
+  
   const [health, setHealth] = useState<Health | null>(null);
-  const [form, setForm] = useState({
-    name: "",
-    subject: "",
-    message: ""
-  });
+
   const wsRef = useRef<WebSocket | null>(null);
 
   const fetchMessages = async () => {
@@ -91,44 +102,73 @@ export default function App() {
     }
   }
 
+  function logout() {
+    AuthService.logout();
+    setUser(null);
+  }
+
   useEffect(() => {
+    connectWebSocket();
     fetchMessages();
     // fetchDLQ();
-    fetchHealth();
-
-    connectWebSocket();
   }, []);
 
   useEffect(() => {
     fetchHealth();
-    const interval = setInterval(fetchHealth, 20000);
+    const interval = setInterval(fetchHealth, 60 * 1000);
 
     return () => clearInterval(interval);
   }, []);
 
   const submit = async () => {
+    if (!isLoggedIn) return;
+
     const res = await fetch(`${API}/messages`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form)
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${AuthService.getToken()}`
+      },
+      body: JSON.stringify({
+        name: user!.username,
+        subject,
+        message
+      })
     });
 
     const msg = await res.json();
     setMessages(prev => [msg, ...prev]);
-    setForm({ name: "", subject: "", message: "" });
+    
+    setSubject("");
+    setMessage("");
   };
 
   const del = async (id: string) => {
-    await fetch(`${API}/messages/${id}`, { method: "DELETE" });
-    setMessages(prev => prev.filter(m => m._id !== id));
+    const res = await fetch(`${API}/messages/${id}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${AuthService.getToken()}`
+      }
+    });
+
+    const msg = await res.json();
+    if (msg.success) {
+      setMessages(prev => prev.filter(m => m._id !== id));
+    }
   };
 
   const reprocess = async (id: string) => {
-    await fetch(`${API}/dlq/${id}/reprocess`, {
-      method: "POST"
+    const res = await fetch(`${API}/dlq/${id}/reprocess`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${AuthService.getToken()}`
+      }
     });
 
-    fetchDLQ();
+    const msg = await res.json();
+    if (msg.success) {
+      fetchDLQ();
+    }
   };
 
   const statusStyle = (status: string) => {
@@ -154,67 +194,102 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6 max-w-3xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6">Message Queue Demo</h1>
-
-      <div className="flex gap-2 mb-4">
-        <HealthTag label="MongoDB" status={toHealthStatus(health?.mongo)} />
-        <HealthTag label="Redis" status={toHealthStatus(health?.redis)} />
-        <HealthTag label="RabbitMQ" status={toHealthStatus(health?.rabbitmq)} />
-      </div>
-
-      <div className="bg-white p-6 rounded shadow mb-8 space-y-4">
-        <input className="border p-2 w-full" placeholder="Name"
-          value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
-        <input className="border p-2 w-full" placeholder="Subject"
-          value={form.subject} onChange={e => setForm({ ...form, subject: e.target.value })} />
-        <textarea className="border p-2 w-full" placeholder="Message"
-          value={form.message} onChange={e => setForm({ ...form, message: e.target.value })} />
-
-        <button
-          disabled={!allHealthy}
-          className={`px-4 py-2 rounded ${
-            allHealthy ? "bg-blue-600" : "bg-gray-400 cursor-not-allowed"
-          }`}
-          onClick={submit}
-        >
-          Send Message
-        </button>
-      </div>
-
-      <h3>Messages</h3>
-      {messages.map(m => (
-        <div key={m._id} className="bg-white p-4 rounded shadow mb-3">
-          <div className="flex justify-between">
-            <b>{m.subject}</b>
-            <div className="flex gap-2">
-              <span
-                className={`px-2 py-1 text-xs rounded font-semibold ${statusStyle(m.status)}`}
-              >
-                {m.status.toUpperCase()}
-              </span>
-              
-              {m.status === "failed" && (
-                <button
-                  onClick={() => reprocess(m._id)}
-                  className="bg-blue-600 text-white px-2 py-1 text-xs rounded font-semibold hover:bg-blue-700"
-                >
-                  Reprocess
-                </button>
-              )}
-              
-              <button
-                onClick={() => del(m._id)}
-                className={`text-xs text-red-600 hover:underline`}
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-          <p>{m.message}</p>
-          <small className="text-gray-500">From {m.name}</small>
+    <div className="min-h-screen bg-gray-50">
+      <Navbar
+        user={user}
+        onLogin={() => setShowLogin(true)}
+        onRegister={() => setShowRegister(true)}
+        onLogout={logout}
+      />
+      
+      <div className="max-w-4xl mx-auto p-6">
+        <div className="flex gap-2 mb-4">
+          <HealthTag label="MongoDB" status={toHealthStatus(health?.mongo)} />
+          <HealthTag label="Redis" status={toHealthStatus(health?.redis)} />
+          <HealthTag label="RabbitMQ" status={toHealthStatus(health?.rabbitmq)} />
         </div>
-      ))}
+
+        <div className="bg-white p-6 rounded shadow mb-8 space-y-4">
+          <input
+            disabled={!isLoggedIn}
+            className="border p-2 w-full"
+            placeholder="Subject"
+            value={subject}
+            onChange={e => setSubject(e.target.value)}
+          />
+          <textarea
+            disabled={!isLoggedIn}
+            className="border p-2 w-full"
+            placeholder="Message"
+            value={message}
+            onChange={e => setMessage(e.target.value)}
+          />
+
+          <button
+            disabled={!allHealthy || !isLoggedIn}
+            className={`px-4 py-2 rounded ${
+              (allHealthy && isLoggedIn) ? "bg-green-500 text-white" : "bg-gray-400 text-white cursor-not-allowed"
+            }`}
+            onClick={submit}
+          >
+            Send Message
+          </button>
+        </div>
+
+        <h3>Messages</h3>
+        {messages.map(m => (
+          <div key={m._id} className="bg-white p-4 rounded shadow mb-3">
+            <div className="flex justify-between">
+              <b>{m.subject}</b>
+              <div className="flex gap-2">
+                <span
+                  className={`px-2 py-1 text-xs rounded font-semibold ${statusStyle(m.status)}`}
+                >
+                  {m.status.toUpperCase()}
+                </span>
+                
+                {m.status === "failed" && (
+                  <button
+                    disabled={!isLoggedIn}
+                    onClick={() => reprocess(m._id)}
+                    className={`text-white px-2 py-1 text-xs rounded ${
+                      isLoggedIn ? "bg-blue-600" : "bg-gray-400 cursor-not-allowed"
+                    }`}
+                  >
+                    Reprocess
+                  </button>
+                )}
+                
+                <button
+                  disabled={!isLoggedIn}
+                  onClick={() => del(m._id)}
+                  className={`text-white px-2 py-1 text-xs rounded ${
+                    isLoggedIn ? "bg-red-600 hover:underline" : "bg-gray-400 cursor-not-allowed"
+                  }`}
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+            <p>{m.message}</p>
+            <small className="text-gray-500">From {m.name}</small>
+          </div>
+        ))}
+      </div>
+
+      {showLogin && (
+        <LoginModal
+          onClose={() => setShowLogin(false)}
+          onSuccess={() => {
+            setUser(AuthService.getUser());
+            setShowLogin(false);
+          }}
+        />
+      )}
+
+      {showRegister && (
+        <RegisterModal onClose={() => setShowRegister(false)} />
+      )}
     </div>
   );
 }

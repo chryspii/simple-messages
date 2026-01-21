@@ -5,6 +5,11 @@ const isLocal =
   process.env.NODE_ENV === "test";
 
 export const env = {
+  JWT_SECRET: process.env.JWT_SECRET,
+  JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN,
+  ADMIN_USER: process.env.ADMIN_USER,
+  ADMIN_PASS: process.env.ADMIN_PASS,
+
   NODE_ENV: process.env.NODE_ENV ?? "development",
 
   MONGO_URL: isLocal

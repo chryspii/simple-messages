@@ -1,33 +1,92 @@
+import { Request, Response } from "express";
 import { Router } from "express";
 import { MessageService } from "../services/MessageService.js";
+import { AuthRequest } from "../middlewares/authMiddleware.js";
 
-export function MessageController(service: MessageService) {
-  const router = Router();
+export class MessageController {
+  constructor(private service: MessageService) {}
 
-  router.post("/messages", async (req, res) => {
-    const doc = await service.create(req.body);
-    res.json(doc);
-  });
+  list = async (req: Request, res: Response) => {
+    try {
+      const messages = await this.service.list();
+      res.json(messages);
+    } catch (err) {
+      res.status(500).json({
+        error: (err as Error).message
+      });
+    }
+  }
 
-  router.get("/messages", async (_req, res) => {
-    res.json(await service.list());
-  });
+  getFailed = async (req: Request, res: Response) => {
+    try {
+      const messages = await this.service.getFailed();
+      res.json(messages);
+    } catch (err) {
+      res.status(500).json({
+        error: (err as Error).message
+      });
+    }
+  }
 
-  router.delete("/messages/:id", async (req, res) => {
-    const ok = await service.delete(req.params.id);
-    if (!ok) return res.status(404).json({ error: "Not found" });
-    res.json({ success: true });
-  });
+  create = async (req: AuthRequest, res: Response) => {
+    try {
+      const { subject, message } = req.body;
 
-  router.get("/dlq", async (_req, res) => {
-    res.json(await service.getFailed());
-  });
+      if (!subject || !message) {
+        return res.status(400).json({
+          error: "Subject and message are required"
+        });
+      }
 
-  router.post("/dlq/:id/reprocess", async (req, res) => {
-    const ok = await service.reprocess(req.params.id);
-    if (!ok) return res.status(404).json({ error: "Not found" });
-    res.json({ success: true });
-  });
+      const user = req.user!;
 
-  return router;
+      const msg = await this.service.create({
+        subject,
+        message,
+        userId: user.id,
+        name: user.username
+      });
+
+      res.status(201).json(msg);
+    } catch (err) {
+      res.status(500).json({
+        error: (err as Error).message
+      });
+    }
+  }
+
+  delete = async (req: AuthRequest, res: Response) => {
+    try {
+      const user = req.user!;
+
+      await this.service.delete(req.params.id, user.id);
+
+      res.status(201).json({ success: true });
+    } catch (err) {
+      const message = (err as Error).message;
+
+      if (message === "FORBIDDEN") {
+        return res.status(403).json({
+          error: "You are not allowed to delete this message"
+        });
+      }
+
+      res.status(500).json({
+        error: message
+      });
+    }
+  }
+
+  reprocess = async (req: AuthRequest, res: Response) => {
+    try {
+      await this.service.reprocess(req.params.id);
+
+      res.status(201).json({ success: true });
+    } catch (err) {
+      res.status(500).json({
+        error: (err as Error).message
+      });
+    }
+  }
 }
+

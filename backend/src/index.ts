@@ -12,6 +12,8 @@ import { QueuePublisher } from "./servers/QueuePublisher.js";
 import { MessageService } from "./services/MessageService.js";
 import { MessageController } from "./controllers/MessageController.js";
 import { HealthController } from "./controllers/HealthController.js";
+import { AuthController } from "./controllers/AuthController.js";
+import { authMiddleware } from "./middlewares/authMiddleware.js";
 
 export async function createApp() {
   const app = express();
@@ -38,9 +40,19 @@ export async function createApp() {
   const queue = new QueuePublisher();
   await queue.connect();
 
-  // services
+  // login
+  app.post("/auth/register", AuthController.register);
+  app.post("/auth/login", AuthController.login);
+
+  // messages
   const messageService = new MessageService(redis, queue);
-  app.use(MessageController(messageService));
+  const messageController = new MessageController(messageService);
+  app.get("/messages", messageController.list);
+  app.post("/messages", authMiddleware, messageController.create);
+  app.delete("/messages/:id", authMiddleware, messageController.delete);
+
+  app.get("/dlq", messageController.getFailed);
+  app.post("/dlq/:id/reprocess", authMiddleware, messageController.reprocess);
 
   // Health routes
   app.get("/health", HealthController.basic);

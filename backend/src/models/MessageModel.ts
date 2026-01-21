@@ -6,6 +6,7 @@ const MessageSchema = new mongoose.Schema(
     subject: String,
     message: String,
     status: String,
+    userId: String,
     retries: Number
   },
   { timestamps: true }

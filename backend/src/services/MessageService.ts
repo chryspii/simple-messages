@@ -32,9 +32,16 @@ export class MessageService {
     );
   }
 
-  async delete(id: string) {
-    const deleted = await Message.findByIdAndDelete(id);
-    if (!deleted) return false;
+  async delete(id: string, userId: string) {
+    const message = await Message.findById(id);
+
+    if (!message) {
+      throw new Error("Message not found");
+    }
+
+    if (message.userId?.toString() !== userId) {
+      throw new Error("FORBIDDEN");
+    }
 
     await this.redis.del(`message:${id}`);
     await this.redis.publish(
