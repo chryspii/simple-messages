@@ -5,8 +5,7 @@ import { LoginModal } from "./components/LoginModal";
 import { RegisterModal } from "./components/RegisterModal";
 import { Navbar } from "./components/Navbar";
 
-const isDev = import.meta.env.DEV;
-const API = isDev ? '' : '/api';
+const API = '/api';
 const WS = location.protocol === "https:" ? `wss://${location.host}/ws` : `ws://${location.host}/ws`;
 
 type Message = {

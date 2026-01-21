@@ -9,8 +9,7 @@ type LoginResponse = {
   user: User;
 };
 
-const isDev = import.meta.env.DEV;
-const API = isDev ? '' : '/api';
+const API = '/api';
 
 class AuthService {
   private static TOKEN_KEY = "auth_token";
