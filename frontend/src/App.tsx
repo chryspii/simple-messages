@@ -16,7 +16,9 @@ type Health = {
   rabbitmq: boolean;
 };
 
-const API = '/api';
+const isDev = import.meta.env.DEV;
+
+const API = isDev ? '' : '/api';
 const WS = location.protocol === "https:" ? `wss://${location.host}/ws` : `ws://${location.host}/ws`;
 
 export default function App() {
