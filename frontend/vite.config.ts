@@ -18,6 +18,12 @@ export default defineConfig({
         changeOrigin: true
       },
 
+      // Auth endpoints
+      "/auth": {
+        target: "http://localhost:3001",
+        changeOrigin: true
+      },
+
       // WebSocket → backend WS server
       "/ws": {
         target: "ws://localhost:8080",
